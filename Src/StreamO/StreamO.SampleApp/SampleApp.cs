@@ -10,7 +10,7 @@ namespace StreamO.SampleApp
         private static void Main(string[] args)
         {
             ExchangeCredentials cred = new WebCredentials("your@serviceaccount.com", "password");
-            var listener = new StreamingListener(cred, ExchangeVersion.Exchange2010_SP2, (x, y) =>
+            var listener = new StreamingListener(cred, (x, y) =>
                 {
                     foreach (var e in y.Events)
                     {

@@ -18,13 +18,25 @@ namespace StreamO
         /// </summary>
         /// <param name="credentials">Credentials with permission to impersonate the user mailboxes for all the subscriptions this instance will manage.</param>
         /// <param name="exchangeVersion">The version of the target Exchange server. Must be 2010 SP1 or higher</param>
-        /// <param name="onNotificationEvent">The ACtion to invoke when Notifications arrive</param>
+        /// <param name="onNotificationEvent">The Action to invoke when Notifications arrive</param>
         public StreamingListener(ExchangeCredentials credentials, ExchangeVersion exchangeVersion, Action<object, NotificationEventArgs> onNotificationEvent)
         {
             _onNotificationEvent = onNotificationEvent;
             if ((int)exchangeVersion < 2)
                 throw new ArgumentException("ExchangeVersion must be 2010 SP1 or higher");
             _exchangeVersion = exchangeVersion;
+            this._credentials = credentials;
+        }
+
+        /// <summary>
+        /// Manages Streaming Notifications for Exchange Users. Automatically assigns subscriptions to adequate CAS connections. Exchange Version is assumed to be 2010_SP1
+        /// </summary>
+        /// <param name="credentials">Credentials with permission to impersonate the user mailboxes for all the subscriptions this instance will manage.</param>
+        /// <param name="onNotificationEvent">The Action to invoke when Notifications arrive</param>
+        public StreamingListener(ExchangeCredentials credentials, Action<object, NotificationEventArgs> onNotificationEvent)
+        {
+            _onNotificationEvent = onNotificationEvent;
+            _exchangeVersion =  ExchangeVersion.Exchange2010_SP1;
             this._credentials = credentials;
         }
 
