@@ -1,16 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.Exchange.WebServices.Data;
 
 namespace StreamO
 {
-    internal class StreamingSubscriptionCollection : ICollection<StreamingSubscription>
+    internal class StreamingSubscriptionCollection : IEnumerable<StreamingSubscription>
     {
         private StreamingSubscriptionConnection _connection;
         private static readonly object _conLock = new object();
         private readonly ExchangeService _exchangeService;
         private readonly IList<StreamingSubscription> _subscriptions = new List<StreamingSubscription>();
+        private bool isAddingOrRemovingSubscription;
 
         /// <summary>
         /// The Url used to call into Exchange Web Services.
@@ -31,19 +33,32 @@ namespace StreamO
         }
 
         /// <summary>
-        /// Adds the <see cref="StreamingSubscription"/> and immediately starts listening. Closes and restarts open connections to EWS. Attention: Use only for subscriptions on the same CAS Server.
+        /// Adds the user to subscriptions and starts listening with defined parameters.
         /// </summary>
-        /// <param name="item"></param>
-        public void Add(StreamingSubscription item)
+        /// <param name="userMailAddress">The desired user's mail address.</param>
+        /// <param name="folderIds">The Exchange folders under observation</param>
+        /// <param name="eventTypes">Notifications will be received for these eventTypes</param>
+        public void Add(string userMailAddress, IEnumerable<FolderId> folderIds, IEnumerable<EventType> eventTypes)
         {
             lock (_conLock)
             {
+                this.isAddingOrRemovingSubscription = true;
+
                 if (_connection.IsOpen)
                     _connection.Close();
 
+                this._exchangeService.ImpersonatedUserId = new ImpersonatedUserId(ConnectingIdType.SmtpAddress, userMailAddress);
+
+                var item = this._exchangeService.SubscribeToStreamingNotifications(folderIds, eventTypes.ToArray());
+
                 _connection.AddSubscription(item);
+
                 this._subscriptions.Add(item);
+
                 _connection.Open();
+                Debug.WriteLine(string.Format("Subscription added to EWS connection {0}. Started listening.", this.TargetEwsUrl.ToString()));
+
+                this.isAddingOrRemovingSubscription = false;
             }
         }
 
@@ -57,6 +72,8 @@ namespace StreamO
             bool success;
             lock (_conLock)
             {
+                this.isAddingOrRemovingSubscription = true;
+
                 if (_connection.IsOpen)
                     _connection.Close();
 
@@ -64,6 +81,8 @@ namespace StreamO
                 success = this._subscriptions.Remove(item);
                 if (this._subscriptions.Any())
                     _connection.Open();
+
+                this.isAddingOrRemovingSubscription = false;
             }
             return success;
         }
@@ -72,29 +91,11 @@ namespace StreamO
         {
             lock (_conLock)
             {
+                this.isAddingOrRemovingSubscription = true;
                 _connection.Close();
                 _subscriptions.Clear();
+                this.isAddingOrRemovingSubscription = false;
             }
-        }
-
-        public bool Contains(StreamingSubscription item)
-        {
-            return this._subscriptions.Contains(item);
-        }
-
-        public void CopyTo(StreamingSubscription[] array, int arrayIndex)
-        {
-            _subscriptions.CopyTo(array, arrayIndex);
-        }
-
-        public int Count
-        {
-            get { return _subscriptions.Count; }
-        }
-
-        public bool IsReadOnly
-        {
-            get { return _subscriptions.IsReadOnly; }
         }
 
         public IEnumerator<StreamingSubscription> GetEnumerator()
@@ -111,7 +112,7 @@ namespace StreamO
         {
             var con = new StreamingSubscriptionConnection(this._exchangeService, 30);
             con.OnSubscriptionError += OnSubscriptionError;
-            con.OnDisconnect += con_OnDisconnect;
+            con.OnDisconnect += OnDisconnect;
 
             con.OnNotificationEvent +=
                         new StreamingSubscriptionConnection.NotificationEventDelegate(OnNotificationEvent);
@@ -119,9 +120,12 @@ namespace StreamO
             return con;
         }
 
-        private void con_OnDisconnect(object sender, SubscriptionErrorEventArgs args)
+        private void OnDisconnect(object sender, SubscriptionErrorEventArgs args)
         {
-            throw new NotImplementedException();
+            if (isAddingOrRemovingSubscription == false)
+            {
+                this._connection.Open();
+            }
         }
 
         private void OnSubscriptionError(object sender, SubscriptionErrorEventArgs args)
