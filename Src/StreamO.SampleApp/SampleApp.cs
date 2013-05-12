@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Mail;
 using Microsoft.Exchange.WebServices.Data;
 
@@ -9,7 +10,9 @@ namespace StreamO.SampleApp
     {
         private static void Main(string[] args)
         {
-            ExchangeCredentials cred = new WebCredentials("your@serviceaccount.com", "password");
+            ServicePointManager.DefaultConnectionLimit = 10;
+
+            ExchangeCredentials cred = new WebCredentials("svcaccount@yourdomain.com", "password");
             var listener = new StreamingListener(cred, (x, y) =>
                 {
                     foreach (var e in y.Events)
@@ -18,7 +21,15 @@ namespace StreamO.SampleApp
                     }
                 });
 
-            listener.AddSubscription(new MailAddress("florian.hoetzinger@gab-net.com"),
+            listener.AddSubscription(new MailAddress("florian.hoetzinger@yourdomain.com"),
+                new List<FolderId> { WellKnownFolderName.Contacts },
+                new List<EventType> { EventType.Created });
+
+            listener.AddSubscription(new MailAddress("john.doe@yourdomain.com"),
+                new List<FolderId> { WellKnownFolderName.Contacts },
+                new List<EventType> { EventType.Created });
+
+            listener.AddSubscription(new MailAddress("homer.simpson@yourdomain.com"),
                 new List<FolderId> { WellKnownFolderName.Contacts },
                 new List<EventType> { EventType.Created });
 

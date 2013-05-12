@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Mail;
 using Microsoft.Exchange.WebServices.Data;
@@ -49,13 +50,26 @@ namespace StreamO
         public void AddSubscription(MailAddress userMailAddress, IEnumerable<FolderId> folderIds, IEnumerable<EventType> eventTypes)
         {
             var exchangeService = new ExchangeService(this._exchangeVersion) { Credentials = this._credentials };
-            exchangeService.AutodiscoverUrl(userMailAddress.ToString(), x => true);
-            exchangeService.ImpersonatedUserId = new ImpersonatedUserId(ConnectingIdType.SmtpAddress, userMailAddress.ToString());
-            var ewsUrl = exchangeService.Url;
 
+            Debug.WriteLine("Autodiscover EWS Url for Subscription User...");
+            exchangeService.AutodiscoverUrl(userMailAddress.ToString(), x => true);
+
+            var ewsUrl = exchangeService.Url;
             var collection = FindOrCreateSubscriptionCollection(exchangeService);
-            collection.Add(exchangeService.SubscribeToStreamingNotifications(folderIds, eventTypes.ToArray()));
+            collection.Add(userMailAddress.ToString(),folderIds,eventTypes.ToArray());
             this._subscriptionCollections.Add(collection);
+        }
+
+        /// <summary>
+        /// Creates a new Notification subscription for the desired user and starts listening. Automatically assigns subscriptions to adequate CAS connections. Uses AutoDiscover to determine User's EWS Url.
+        /// </summary>
+        /// <param name="userMailAddress">The desired user's mail address. Used for AutoDiscover</param>
+        /// <param name="folderIds">The Exchange folders under observation</param>
+        /// <param name="eventTypes">Notifications will be received for these eventTypes</param>
+        public void AddSubscription(string userMailAddress, IEnumerable<FolderId> folderIds, IEnumerable<EventType> eventTypes)
+        {
+            var mailAddress = new MailAddress(userMailAddress);
+            this.AddSubscription(userMailAddress, folderIds, eventTypes);
         }
 
         private StreamingSubscriptionCollection FindOrCreateSubscriptionCollection(ExchangeService service)
