@@ -110,7 +110,7 @@ namespace StreamO
 
         private StreamingSubscriptionConnection CreateConnection(Action<object, NotificationEventArgs> OnNotificationEvent)
         {
-            var con = new StreamingSubscriptionConnection(this._exchangeService, 1);
+            var con = new StreamingSubscriptionConnection(this._exchangeService, 30);
             con.OnSubscriptionError += OnSubscriptionError;
             con.OnDisconnect += OnDisconnect;
 
