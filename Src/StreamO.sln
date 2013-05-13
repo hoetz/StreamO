@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamO", "StreamO\StreamO.csproj", "{48857351-1F6E-42F1-BADC-A0AED35AEAAF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamO.SampleApp", "StreamO.SampleApp\StreamO.SampleApp.csproj", "{0987B2CD-4C10-4050-8951-DE5280AA6DC7}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,10 +13,6 @@ Global
 		{48857351-1F6E-42F1-BADC-A0AED35AEAAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{48857351-1F6E-42F1-BADC-A0AED35AEAAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{48857351-1F6E-42F1-BADC-A0AED35AEAAF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0987B2CD-4C10-4050-8951-DE5280AA6DC7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0987B2CD-4C10-4050-8951-DE5280AA6DC7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0987B2CD-4C10-4050-8951-DE5280AA6DC7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0987B2CD-4C10-4050-8951-DE5280AA6DC7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
