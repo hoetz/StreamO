@@ -61,6 +61,24 @@ namespace StreamO
                 this._subscriptionCollections.Add(collection);
         }
 
+        public bool RemoveSubscription(string userMailAddress)
+        {
+            var collection = FindBy(userMailAddress);
+            if (collection != null)
+            {
+                Debug.WriteLine(string.Format("Closing subscription for {0}", userMailAddress));
+                bool success=collection.Remove(userMailAddress);
+                if (collection.ActiveUsers.Any() == false)
+                {
+                    Debug.WriteLine(string.Format("Removing collection for {0}", collection.TargetEwsUrl.ToString()));
+                    success=this._subscriptionCollections.Remove(collection);
+                }
+                return success;
+            }
+            else
+                return false;
+        }
+
         /// <summary>
         /// Creates a new Notification subscription for the desired user and starts listening. Automatically assigns subscriptions to adequate CAS connections. Uses AutoDiscover to determine User's EWS Url.
         /// </summary>
@@ -79,6 +97,12 @@ namespace StreamO
                             new StreamingSubscriptionCollection(
                                 service,
                                 this._onNotificationEvent);
+            return collection;
+        }
+
+        private StreamingSubscriptionCollection FindBy(string userMailAddress)
+        {
+            var collection = _subscriptionCollections.FirstOrDefault(s => s.ActiveUsers.Contains(new MailAddress(userMailAddress)));
             return collection;
         }
 

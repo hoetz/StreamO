@@ -3,15 +3,16 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Microsoft.Exchange.WebServices.Data;
+using System.Net.Mail;
 
 namespace StreamO
 {
-    internal class StreamingSubscriptionCollection : IEnumerable<StreamingSubscription>, IDisposable
+    internal class StreamingSubscriptionCollection : IDisposable
     {
         private StreamingSubscriptionConnection _connection;
         private static readonly object _conLock = new object();
         private readonly ExchangeService _exchangeService;
-        private readonly IList<StreamingSubscription> _subscriptions = new List<StreamingSubscription>();
+        private readonly IDictionary<MailAddress, StreamingSubscription> _subscriptions = new Dictionary<MailAddress, StreamingSubscription>();
         private bool isClosingControlled;
 
         /// <summary>
@@ -20,6 +21,11 @@ namespace StreamO
         public Uri TargetEwsUrl
         {
             get { return _exchangeService.Url; }
+        }
+
+        public IEnumerable<MailAddress> ActiveUsers
+        {
+            get { return _subscriptions.Select(x => x.Key); }
         }
 
         /// <summary>
@@ -53,7 +59,7 @@ namespace StreamO
 
                 _connection.AddSubscription(item);
 
-                this._subscriptions.Add(item);
+                this._subscriptions.Add(new MailAddress(userMailAddress),item);
 
                 _connection.Open();
                 Debug.WriteLine(string.Format("Subscription added to EWS connection {0}. Started listening.", this.TargetEwsUrl.ToString()));
@@ -67,18 +73,23 @@ namespace StreamO
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public bool Remove(StreamingSubscription item)
+        public bool Remove(string userMailAddress)
         {
             bool success;
+            var mailAddress=new MailAddress(userMailAddress);
+            if (this._subscriptions.ContainsKey(mailAddress) == false)
+                return false;
+
             lock (_conLock)
             {
                 this.isClosingControlled = true;
+                var subscriptionToRemove = _subscriptions[mailAddress];
 
                 if (_connection.IsOpen)
                     _connection.Close();
 
-                _connection.RemoveSubscription(item);
-                success = this._subscriptions.Remove(item);
+                _connection.RemoveSubscription(subscriptionToRemove);
+                success = _subscriptions.Remove(mailAddress);
                 if (this._subscriptions.Any())
                     _connection.Open();
 
@@ -98,22 +109,12 @@ namespace StreamO
             }
         }
 
-        public IEnumerator<StreamingSubscription> GetEnumerator()
-        {
-            return _subscriptions.GetEnumerator();
-        }
-
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-        {
-            return _subscriptions.GetEnumerator();
-        }
-
         private StreamingSubscriptionConnection CreateConnection(Action<object, NotificationEventArgs> OnNotificationEvent)
         {
             var con = new StreamingSubscriptionConnection(this._exchangeService, 30);
             con.OnSubscriptionError += OnSubscriptionError;
             con.OnDisconnect += OnDisconnect;
-
+            
             con.OnNotificationEvent +=
                         new StreamingSubscriptionConnection.NotificationEventDelegate(OnNotificationEvent);
 
