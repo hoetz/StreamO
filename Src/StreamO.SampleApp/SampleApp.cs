@@ -13,27 +13,29 @@ namespace StreamO.SampleApp
             ServicePointManager.DefaultConnectionLimit = 10;
 
             ExchangeCredentials cred = new WebCredentials("svcaccount@yourdomain.com", "password");
-            var listener = new StreamingListener(cred, (x, y) =>
+            using (var listener = new StreamingListener(cred, (x, y) =>
                 {
                     foreach (var e in y.Events)
                     {
                         Console.WriteLine(e.EventType.ToString());
                     }
-                });
+                }))
+            {
 
-            listener.AddSubscription(new MailAddress("florian.hoetzinger@yourdomain.com"),
-                new List<FolderId> { WellKnownFolderName.Contacts },
-                new List<EventType> { EventType.Created });
+                listener.AddSubscription(new MailAddress("florian.hoetzinger@yourdomain.com"),
+                    new List<FolderId> { WellKnownFolderName.Contacts },
+                    new List<EventType> { EventType.Created });
 
-            listener.AddSubscription(new MailAddress("john.doe@yourdomain.com"),
-                new List<FolderId> { WellKnownFolderName.Contacts },
-                new List<EventType> { EventType.Created });
+                listener.AddSubscription(new MailAddress("john.doe@yourdomain.com"),
+                    new List<FolderId> { WellKnownFolderName.Contacts },
+                    new List<EventType> { EventType.Created });
 
-            listener.AddSubscription(new MailAddress("homer.simpson@yourdomain.com"),
-                new List<FolderId> { WellKnownFolderName.Contacts },
-                new List<EventType> { EventType.Created });
+                listener.AddSubscription(new MailAddress("homer.simpson@yourdomain.com"),
+                    new List<FolderId> { WellKnownFolderName.Contacts },
+                    new List<EventType> { EventType.Created });
 
-            Console.ReadLine();
+                Console.ReadLine();
+            }
         }
     }
 }

@@ -6,13 +6,13 @@ using Microsoft.Exchange.WebServices.Data;
 
 namespace StreamO
 {
-    internal class StreamingSubscriptionCollection : IEnumerable<StreamingSubscription>
+    internal class StreamingSubscriptionCollection : IEnumerable<StreamingSubscription>, IDisposable
     {
         private StreamingSubscriptionConnection _connection;
         private static readonly object _conLock = new object();
         private readonly ExchangeService _exchangeService;
         private readonly IList<StreamingSubscription> _subscriptions = new List<StreamingSubscription>();
-        private bool isAddingOrRemovingSubscription;
+        private bool isClosingControlled;
 
         /// <summary>
         /// The Url used to call into Exchange Web Services.
@@ -42,7 +42,7 @@ namespace StreamO
         {
             lock (_conLock)
             {
-                this.isAddingOrRemovingSubscription = true;
+                this.isClosingControlled = true;
 
                 if (_connection.IsOpen)
                     _connection.Close();
@@ -58,7 +58,7 @@ namespace StreamO
                 _connection.Open();
                 Debug.WriteLine(string.Format("Subscription added to EWS connection {0}. Started listening.", this.TargetEwsUrl.ToString()));
 
-                this.isAddingOrRemovingSubscription = false;
+                this.isClosingControlled = false;
             }
         }
 
@@ -72,7 +72,7 @@ namespace StreamO
             bool success;
             lock (_conLock)
             {
-                this.isAddingOrRemovingSubscription = true;
+                this.isClosingControlled = true;
 
                 if (_connection.IsOpen)
                     _connection.Close();
@@ -82,7 +82,7 @@ namespace StreamO
                 if (this._subscriptions.Any())
                     _connection.Open();
 
-                this.isAddingOrRemovingSubscription = false;
+                this.isClosingControlled = false;
             }
             return success;
         }
@@ -91,10 +91,10 @@ namespace StreamO
         {
             lock (_conLock)
             {
-                this.isAddingOrRemovingSubscription = true;
+                this.isClosingControlled = true;
                 _connection.Close();
                 _subscriptions.Clear();
-                this.isAddingOrRemovingSubscription = false;
+                this.isClosingControlled = false;
             }
         }
 
@@ -110,7 +110,7 @@ namespace StreamO
 
         private StreamingSubscriptionConnection CreateConnection(Action<object, NotificationEventArgs> OnNotificationEvent)
         {
-            var con = new StreamingSubscriptionConnection(this._exchangeService, 30);
+            var con = new StreamingSubscriptionConnection(this._exchangeService, 1);
             con.OnSubscriptionError += OnSubscriptionError;
             con.OnDisconnect += OnDisconnect;
 
@@ -122,8 +122,9 @@ namespace StreamO
 
         private void OnDisconnect(object sender, SubscriptionErrorEventArgs args)
         {
-            if (isAddingOrRemovingSubscription == false)
+            if (isClosingControlled == false)
             {
+                Debug.WriteLine(string.Format("Restoring connection for subscription collection {0}", this.TargetEwsUrl.ToString()));
                 this._connection.Open();
             }
         }
@@ -131,6 +132,18 @@ namespace StreamO
         private void OnSubscriptionError(object sender, SubscriptionErrorEventArgs args)
         {
             throw new NotImplementedException();
+        }
+
+        public void Dispose()
+        {
+            lock (_conLock)
+            {
+                isClosingControlled = true;
+                if (_connection.IsOpen)
+                    _connection.Close();
+                _connection.Dispose();
+                isClosingControlled = false;
+            }
         }
     }
 }

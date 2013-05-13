@@ -7,7 +7,7 @@ using Microsoft.Exchange.WebServices.Data;
 
 namespace StreamO
 {
-    public class StreamingListener
+    public class StreamingListener:IDisposable
     {
         private readonly ExchangeCredentials _credentials;
         private readonly ExchangeVersion _exchangeVersion;
@@ -57,7 +57,8 @@ namespace StreamO
             var ewsUrl = exchangeService.Url;
             var collection = FindOrCreateSubscriptionCollection(exchangeService);
             collection.Add(userMailAddress.ToString(),folderIds,eventTypes.ToArray());
-            this._subscriptionCollections.Add(collection);
+            if (_subscriptionCollections.Contains(collection)==false)
+                this._subscriptionCollections.Add(collection);
         }
 
         /// <summary>
@@ -79,6 +80,14 @@ namespace StreamO
                                 service,
                                 this._onNotificationEvent);
             return collection;
+        }
+
+        public void Dispose()
+        {
+            foreach (var item in _subscriptionCollections)
+            {
+                item.Dispose();
+            }
         }
     }
 }
