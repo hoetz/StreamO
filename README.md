@@ -35,3 +35,16 @@ Also, Autodiscover is a must.
                 Console.WriteLine("Listening...");
                 Console.ReadLine();
             }
+##nuget##
+StreamO is available on [nuget] (https://nuget.org/packages/StreamO/)
+
+##scriptcs##
+StreamO works just fine with the latest [scriptcs] (https://github.com/scriptcs/scriptcs) release.
+
+            scriptcs -install StreamO
+            scriptcs
+            > using StreamO;
+            > using Microsoft.Exchange.WebServices.Data;
+            > var cred = new WebCredentials("serviceaccount@yourcompany.com","password");
+            > var listener=new StreamingListener(cred,(eventData)=>{ Console.WriteLine("Event incoming for "+eventData.Sender.ToString());  });
+            > listener.AddSubscription("florian.hoetzinger@yourcompany.com");
