@@ -61,6 +61,20 @@ namespace StreamO
                 this._subscriptionCollections.Add(collection);
         }
 
+        /// <summary>
+        /// Creates a new Notification subscription for the desired user and starts listening on NewMail events for the inbox. Automatically assigns subscriptions to adequate CAS connections. Uses AutoDiscover to determine User's EWS Url.
+        /// </summary>
+        /// <param name="userMailAddress"></param>
+        public void AddSubscription(string userMailAddress)
+        {
+            this.AddSubscription(userMailAddress, new FolderId[] { WellKnownFolderName.Inbox }, new EventType[] { EventType.NewMail });
+        }
+
+        /// <summary>
+        /// Cancels the notification subscription for this user. 
+        /// </summary>
+        /// <param name="userMailAddress">The MailAddress of the user to remove</param>
+        /// <returns></returns>
         public bool RemoveSubscription(string userMailAddress)
         {
             var collection = FindBy(userMailAddress);
@@ -88,7 +102,7 @@ namespace StreamO
         public void AddSubscription(string userMailAddress, IEnumerable<FolderId> folderIds, IEnumerable<EventType> eventTypes)
         {
             var mailAddress = new MailAddress(userMailAddress);
-            this.AddSubscription(userMailAddress, folderIds, eventTypes);
+            this.AddSubscription(mailAddress, folderIds, eventTypes);
         }
 
         private StreamingSubscriptionCollection FindOrCreateSubscriptionCollection(ExchangeService service)
