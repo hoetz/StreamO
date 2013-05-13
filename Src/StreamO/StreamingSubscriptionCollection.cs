@@ -28,14 +28,17 @@ namespace StreamO
             get { return _subscriptions.Select(x => x.Key); }
         }
 
+        private readonly Action<SubscriptionNotificationEventCollection> _EventProcessor;
+
         /// <summary>
         /// Manages the connection for multiple <see cref="StreamingSubscription"/> items. Attention: Use only for subscriptions on the same CAS.
         /// </summary>
         /// <param name="exchangeService">The ExchangeService instance this collection uses to connect to the server.</param>
-        public StreamingSubscriptionCollection(ExchangeService exchangeService, Action<object, NotificationEventArgs> OnNotificationEvent)
+        public StreamingSubscriptionCollection(ExchangeService exchangeService, Action<SubscriptionNotificationEventCollection> EventProcessor)
         {
             this._exchangeService = exchangeService;
-            _connection = CreateConnection(OnNotificationEvent);
+            this._EventProcessor = EventProcessor;
+            _connection = CreateConnection();
         }
 
         /// <summary>
@@ -109,14 +112,13 @@ namespace StreamO
             }
         }
 
-        private StreamingSubscriptionConnection CreateConnection(Action<object, NotificationEventArgs> OnNotificationEvent)
+        private StreamingSubscriptionConnection CreateConnection()
         {
             var con = new StreamingSubscriptionConnection(this._exchangeService, 30);
             con.OnSubscriptionError += OnSubscriptionError;
             con.OnDisconnect += OnDisconnect;
-            
-            con.OnNotificationEvent +=
-                        new StreamingSubscriptionConnection.NotificationEventDelegate(OnNotificationEvent);
+
+            con.OnNotificationEvent += OnNotificationEvent;
 
             return con;
         }
@@ -135,6 +137,13 @@ namespace StreamO
             throw new NotImplementedException();
         }
 
+        private void OnNotificationEvent(object sender, NotificationEventArgs args)
+        {
+            var currentSub = _subscriptions.FirstOrDefault(x => x.Value.Id == args.Subscription.Id);
+            var eventData = new SubscriptionNotificationEventCollection(currentSub.Key, args.Events);
+            this._EventProcessor.Invoke(eventData);
+        }
+
         public void Dispose()
         {
             lock (_conLock)
@@ -146,5 +155,6 @@ namespace StreamO
                 isClosingControlled = false;
             }
         }
+
     }
 }

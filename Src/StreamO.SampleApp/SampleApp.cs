@@ -13,9 +13,10 @@ namespace StreamO.SampleApp
             ServicePointManager.DefaultConnectionLimit = 10;
 
             ExchangeCredentials cred = new WebCredentials("svcaccount@yourdomain.com", "password");
-            using (var listener = new StreamingListener(cred, (x, y) =>
+            using (var listener = new StreamingListener(cred, (eventData) =>
                 {
-                    foreach (var e in y.Events)
+                    Console.WriteLine(string.Format("Receiving events for {0}", eventData.Sender.ToString()));
+                    foreach (var e in eventData.Events)
                     {
                         Console.WriteLine(e.EventType.ToString());
                     }
