@@ -42,6 +42,9 @@
     <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FolderChanges\FolderChanges.cs" />
+    <Compile Include="FolderChanges\FolderSyncState.cs" />
+    <Compile Include="FolderChanges\SyncChangesResult.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StreamingListener.cs" />
     <Compile Include="StreamingSubscriptionCollection.cs" />
