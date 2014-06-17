@@ -30,14 +30,21 @@ namespace StreamO
 
         private readonly Action<SubscriptionNotificationEventCollection> _EventProcessor;
 
+        private GroupIdentifier _groupIdentifier;
+        public GroupIdentifier groupIdentifier
+        {
+            get { return this._groupIdentifier; }
+        }
+
         /// <summary>
         /// Manages the connection for multiple <see cref="StreamingSubscription"/> items. Attention: Use only for subscriptions on the same CAS.
         /// </summary>
         /// <param name="exchangeService">The ExchangeService instance this collection uses to connect to the server.</param>
-        public StreamingSubscriptionCollection(ExchangeService exchangeService, Action<SubscriptionNotificationEventCollection> EventProcessor)
+        public StreamingSubscriptionCollection(ExchangeService exchangeService, Action<SubscriptionNotificationEventCollection> EventProcessor, GroupIdentifier groupIdentifier)
         {
             this._exchangeService = exchangeService;
             this._EventProcessor = EventProcessor;
+            this._groupIdentifier = groupIdentifier;
             _connection = CreateConnection();
         }
 
@@ -134,7 +141,7 @@ namespace StreamO
 
         private void OnSubscriptionError(object sender, SubscriptionErrorEventArgs args)
         {
-            throw new NotImplementedException();
+            Debug.WriteLine(args.Exception != null ? args.Exception.Message : "Subscription error");
         }
 
         private void OnNotificationEvent(object sender, NotificationEventArgs args)

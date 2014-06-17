@@ -4,9 +4,25 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net.Mail;
 using Microsoft.Exchange.WebServices.Data;
+using Microsoft.Exchange.WebServices.Autodiscover;
 
 namespace StreamO
 {
+    public class GroupIdentifier
+    {
+
+        private string _Value;
+        public string Value
+        {
+            get { return this._Value; }
+        }
+
+        public GroupIdentifier(string GroupingInformation, Uri externalEwsUri)
+        {
+            this._Value = string.Format("{0};{1}", GroupingInformation, externalEwsUri.ToString());
+        }
+    }
+
     public class StreamingListener:IDisposable
     {
         private readonly ExchangeCredentials _credentials;
@@ -49,13 +65,26 @@ namespace StreamO
         /// <param name="eventTypes">Notifications will be received for these eventTypes</param>
         public void AddSubscription(MailAddress userMailAddress, IEnumerable<FolderId> folderIds, IEnumerable<EventType> eventTypes)
         {
+            AutodiscoverService autodiscoverService = new AutodiscoverService(this._exchangeVersion);
+            autodiscoverService.Credentials = this._credentials;
+            autodiscoverService.RedirectionUrlValidationCallback = x => true;
+           
+
             var exchangeService = new ExchangeService(this._exchangeVersion) { Credentials = this._credentials };
 
             Debug.WriteLine("Autodiscover EWS Url for Subscription User...");
-            exchangeService.AutodiscoverUrl(userMailAddress.ToString(), x => true);
+            //exchangeService.AutodiscoverUrl(userMailAddress.ToString(), x => true);
 
-            var ewsUrl = exchangeService.Url;
-            var collection = FindOrCreateSubscriptionCollection(exchangeService);
+            var response = autodiscoverService.GetUserSettings(userMailAddress.ToString(), UserSettingName.GroupingInformation, UserSettingName.ExternalEwsUrl);
+            string extUrl="";
+            string groupInfo = "";
+            response.TryGetSettingValue<string>(UserSettingName.ExternalEwsUrl, out extUrl);
+            response.TryGetSettingValue<string>(UserSettingName.GroupingInformation, out groupInfo);
+            
+
+            var ewsUrl = new Uri(extUrl);
+            exchangeService.Url = ewsUrl;
+            var collection = FindOrCreateSubscriptionCollection(exchangeService,new GroupIdentifier(groupInfo,ewsUrl));
             collection.Add(userMailAddress.ToString(),folderIds,eventTypes.ToArray());
             if (_subscriptionCollections.Contains(collection)==false)
                 this._subscriptionCollections.Add(collection);
@@ -105,12 +134,12 @@ namespace StreamO
             this.AddSubscription(mailAddress, folderIds, eventTypes);
         }
 
-        private StreamingSubscriptionCollection FindOrCreateSubscriptionCollection(ExchangeService service)
+        private StreamingSubscriptionCollection FindOrCreateSubscriptionCollection(ExchangeService service, GroupIdentifier groupIdentifier)
         {
-            var collection = _subscriptionCollections.FirstOrDefault(s => s.TargetEwsUrl.ToString() == service.Url.ToString()) ??
+            var collection = _subscriptionCollections.FirstOrDefault(s => s.groupIdentifier.Value == groupIdentifier.Value) ??
                             new StreamingSubscriptionCollection(
                                 service,
-                                this._onNotificationEvent);
+                                this._onNotificationEvent, groupIdentifier);
             return collection;
         }
 
