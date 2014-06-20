@@ -1,17 +1,17 @@
-﻿using System;
+﻿using Microsoft.Exchange.WebServices.Autodiscover;
+using Microsoft.Exchange.WebServices.Data;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Mail;
-using Microsoft.Exchange.WebServices.Data;
-using Microsoft.Exchange.WebServices.Autodiscover;
 
 namespace StreamO
 {
     public class GroupIdentifier
     {
-
         private string _Value;
+
         public string Value
         {
             get { return this._Value; }
@@ -23,7 +23,7 @@ namespace StreamO
         }
     }
 
-    public class StreamingListener:IDisposable
+    public class StreamingListener : IDisposable
     {
         private readonly ExchangeCredentials _credentials;
         private readonly ExchangeVersion _exchangeVersion;
@@ -53,7 +53,7 @@ namespace StreamO
         public StreamingListener(ExchangeCredentials credentials, Action<SubscriptionNotificationEventCollection> onNotificationEvent)
         {
             _onNotificationEvent = onNotificationEvent;
-            _exchangeVersion =  ExchangeVersion.Exchange2010_SP1;
+            _exchangeVersion = ExchangeVersion.Exchange2010_SP1;
             this._credentials = credentials;
         }
 
@@ -68,7 +68,8 @@ namespace StreamO
             AutodiscoverService autodiscoverService = new AutodiscoverService(this._exchangeVersion);
             autodiscoverService.Credentials = this._credentials;
             autodiscoverService.RedirectionUrlValidationCallback = x => true;
-           
+            //only on o365!
+            autodiscoverService.EnableScpLookup = false;
 
             var exchangeService = new ExchangeService(this._exchangeVersion) { Credentials = this._credentials };
 
@@ -76,17 +77,16 @@ namespace StreamO
             //exchangeService.AutodiscoverUrl(userMailAddress.ToString(), x => true);
 
             var response = autodiscoverService.GetUserSettings(userMailAddress.ToString(), UserSettingName.GroupingInformation, UserSettingName.ExternalEwsUrl);
-            string extUrl="";
+            string extUrl = "";
             string groupInfo = "";
             response.TryGetSettingValue<string>(UserSettingName.ExternalEwsUrl, out extUrl);
             response.TryGetSettingValue<string>(UserSettingName.GroupingInformation, out groupInfo);
-            
 
             var ewsUrl = new Uri(extUrl);
             exchangeService.Url = ewsUrl;
-            var collection = FindOrCreateSubscriptionCollection(exchangeService,new GroupIdentifier(groupInfo,ewsUrl));
-            collection.Add(userMailAddress.ToString(),folderIds,eventTypes.ToArray());
-            if (_subscriptionCollections.Contains(collection)==false)
+            var collection = FindOrCreateSubscriptionCollection(exchangeService, new GroupIdentifier(groupInfo, ewsUrl));
+            collection.Add(userMailAddress.ToString(), folderIds, eventTypes.ToArray());
+            if (_subscriptionCollections.Contains(collection) == false)
                 this._subscriptionCollections.Add(collection);
         }
 
@@ -100,7 +100,7 @@ namespace StreamO
         }
 
         /// <summary>
-        /// Cancels the notification subscription for this user. 
+        /// Cancels the notification subscription for this user.
         /// </summary>
         /// <param name="userMailAddress">The MailAddress of the user to remove</param>
         /// <returns></returns>
@@ -110,11 +110,11 @@ namespace StreamO
             if (collection != null)
             {
                 Debug.WriteLine(string.Format("Closing subscription for {0}", userMailAddress));
-                bool success=collection.Remove(userMailAddress);
+                bool success = collection.Remove(userMailAddress);
                 if (collection.ActiveUsers.Any() == false)
                 {
                     Debug.WriteLine(string.Format("Removing collection for {0}", collection.TargetEwsUrl.ToString()));
-                    success=this._subscriptionCollections.Remove(collection);
+                    success = this._subscriptionCollections.Remove(collection);
                 }
                 return success;
             }

@@ -63,7 +63,14 @@ namespace StreamO
                 if (_connection.IsOpen)
                     _connection.Close();
 
+
                 this._exchangeService.ImpersonatedUserId = new ImpersonatedUserId(ConnectingIdType.SmtpAddress, userMailAddress);
+                if (!this._exchangeService.HttpHeaders.ContainsKey("X-AnchorMailbox"))
+                    this._exchangeService.HttpHeaders.Add("X-AnchorMailbox", userMailAddress);
+                
+
+                if (!this._exchangeService.HttpHeaders.ContainsKey("X-PreferServerAffinity"))
+                    this._exchangeService.HttpHeaders.Add("X-PreferServerAffinity", bool.TrueString);
 
                 var item = this._exchangeService.SubscribeToStreamingNotifications(folderIds, eventTypes.ToArray());
 
